@@ -9,72 +9,55 @@ from models import setup_db, Question, Category
 QUESTIONS_PER_PAGE = 10
 
 
-# utility for paginating questions
-def paginate_questions(request, selection):
+
+def paginate_questions(request, selection):                      # paginating questions method
     page = request.args.get('page', 1, type=int)
     start = (page - 1) * QUESTIONS_PER_PAGE
     end = start + QUESTIONS_PER_PAGE
 
     questions = [question.format() for question in selection]
     current_questions = questions[start:end]
-
     return current_questions
-
+#################
 
 def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__)
     setup_db(app)
 
-    # set up CORS, allowing all origins
-    CORS(app, resources={'/': {'origins': '*'}})
+    CORS(app, resources={'/': {'origins': '*'}})               # set up CORS, allow * origins
 
     @app.after_request
     def after_request(response):
-        '''
-        Sets access control.
-        '''
-        response.headers.add('Access-Control-Allow-Headers',
-                             'Content-Type,Authorization,true')
-        response.headers.add('Access-Control-Allow-Methods',
-                             'GET,PUT,POST,DELETE,OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers','Content-Type,Authorization,true')
+        response.headers.add('Access-Control-Allow-Methods','GET,PUT,POST,DELETE,OPTIONS')
         return response
-
-    @app.route('/categories')
-    def get_categories():
-        '''
-        Handles GET requests for getting all categories.
-        '''
-
-        # get all categories and add to dict
-        categories = Category.query.all()
-        categories_dict = {}
+#########################################
+    @app.route('/categories', methods=['GET'])
+    def retrieve_all_categories():
+       
+        categories = Category.query.order_by(Category.type).all()                  # get all available categories and add them to categories_dict dictionary
+        categories_dict = {}                               
         for category in categories:
             categories_dict[category.id] = category.type
 
-        # abort 404 if no categories found
-        if (len(categories_dict) == 0):
+        if (len(categories_dict) == 0):                         
             abort(404)
-
-        # return data to view
-        return jsonify({
+       
+        return jsonify({                           
             'success': True,
             'categories': categories_dict
+            'total_categories': len(categories_query)
         })
-
-    @app.route('/questions')
-    def get_questions():
-        '''
-        Handles GET requests for getting all questions.
-        '''
-
-        # get all questions and paginate
-        selection = Question.query.all()
+#################################################
+    @app.route('/questions', methods=['GET'])
+    def retrieve_questions():                            #GET requests for getting all questions.
+       
+        selection = Question.query.order_by(Question.id).all()                     
         total_questions = len(selection)
         current_questions = paginate_questions(request, selection)
 
-        # get all categories and add to dict
-        categories = Category.query.all()
+        categories = Category.query.order_by(Category.type).all()                          
         categories_dict = {}
         for category in categories:
             categories_dict[category.id] = category.type
@@ -90,55 +73,45 @@ def create_app(test_config=None):
             'total_questions': total_questions,
             'categories': categories_dict
         })
-
+####################################################
     @app.route('/questions/<int:id>', methods=['DELETE'])
-    def delete_question(id):
-        '''
-        Handles DELETE requests for deleting a question by id.
-        '''
-
+    def delete_specified_question(id):
+                                                              #deleting a question by id.
         try:
-            # get the question by id
-            question = Question.query.filter_by(id=id).one_or_none()
+            question = Question.query.filter_by(id=id).one_or_none()      # get the question by id
 
-            # abort 404 if no question found
-            if question is None:
+            if question is None:      
                 abort(404)
 
-            # delete the question
-            question.delete()
+            question.delete()      # the question will be deleted
+            
+            selection = Question.query.order_by(Question.id).all()
+            current_questions = paginate_questions(request, selection)
+            total_questions = len(selection)
 
-            # return success response
-            return jsonify({
+            return jsonify({                                                  
                 'success': True,
-                'deleted': id
+                'deleted': id,
+                'total_questions': total_questions
             })
-
         except:
-            # abort if problem deleting question
             abort(422)
-
+#################################################
     @app.route('/questions', methods=['POST'])
-    def post_question():
-        '''
-        Handles POST requests for creating new questions and searching questions.
-        '''
-        # load the request body
-        body = request.get_json()
+    def add_new_question():
+                                               #Handles POST requests for creating new questions and searching questions.
+       
+        body = request.get_json()                     # load the request body
 
-        # if search term is present
         if (body.get('searchTerm')):
+            
             search_term = body.get('searchTerm')
-
-            # query the database using search term
             selection = Question.query.filter(
                 Question.question.ilike(f'%{search_term}%')).all()
 
-            # 404 if no results found
-            if (len(selection) == 0):
+            if (len(selection) == 0):                  # 404 if no results found
                 abort(404)
 
-            # paginate the results
             paginated = paginate_questions(request, selection)
 
             # return results
@@ -147,7 +120,7 @@ def create_app(test_config=None):
                 'questions': paginated,
                 'total_questions': len(Question.query.all())
             })
-        # if no search term, create new question
+                                                    # if no search term, create new question
         else:
             # load data from body
             new_question = body.get('question')
@@ -178,31 +151,21 @@ def create_app(test_config=None):
                     'questions': current_questions,
                     'total_questions': len(Question.query.all())
                 })
-
-            except:
-                # abort unprocessable if exception
+            except
                 abort(422)
+##########################################
 
     @app.route('/categories/<int:id>/questions')
-    def get_questions_by_category(id):
-        '''
-        Handles GET requests for getting questions based on category.
-        '''
-
-        # get the category by id
+    def retrieve_questions_by_category(id):
+                                                                         #   GET requests for getting questions.
         category = Category.query.filter_by(id=id).one_or_none()
-
-        # abort 400 for bad request if category isn't found
-        if (category is None):
+                                                     
+        if (category is None):           #bad request if category isn't found
             abort(400)
 
-        # get the matching questions
         selection = Question.query.filter_by(category=category.id).all()
-
-        # paginate the selection
         paginated = paginate_questions(request, selection)
 
-        # return the results
         return jsonify({
             'success': True,
             'questions': paginated,
@@ -210,52 +173,34 @@ def create_app(test_config=None):
             'current_category': category.type
         })
 
+    
+    ########################################################
     @app.route('/quizzes', methods=['POST'])
     def get_random_quiz_question():
-        '''
-        Handles POST requests for playing quiz.
-        '''
-
-        # load the request body
+                                                              #Handles POST requests for playing quiz.
         body = request.get_json()
-
-        # get the previous questions
         previous = body.get('previous_questions')
-
-        # get the category
         category = body.get('quiz_category')
-
-        # abort 400 if category or previous questions isn't found
+                                                                 # category or previous questions not found
         if ((category is None) or (previous is None)):
             abort(400)
 
-        # load questions all questions if "ALL" is selected
         if (category['id'] == 0):
             questions = Question.query.all()
-        # load questions for given category
         else:
             questions = Question.query.filter_by(category=category['id']).all()
-
-        # get total number of questions
-        total = len(questions)
-
-        # picks a random question
-        def get_random_question():
+        total = len(questions)                               
+        def get_random_question():                          # get random question
             return questions[random.randrange(0, len(questions), 1)]
-
-        # checks to see if question has already been used
+                                                                                # to check if question is used
         def check_if_used(question):
             used = False
             for q in previous:
                 if (q == question.id):
                     used = True
-
             return used
 
-        # get random question
         question = get_random_question()
-
-        # check if used, execute until unused question found
         while (check_if_used(question)):
             question = get_random_question()
 
@@ -273,7 +218,7 @@ def create_app(test_config=None):
         })
 
 # error handlers
-
+############################################################################
     @app.errorhandler(404)
     def not_found(error):
         return jsonify({
