@@ -176,7 +176,7 @@ def create_app(test_config=None):
     
     ########################################################
     @app.route('/quizzes', methods=['POST'])
-    def get_random_quiz_question():
+    def play_quiz():
                                                               #Handles POST requests for playing quiz.
         body = request.get_json()
         previous = body.get('previous_questions')
@@ -194,24 +194,21 @@ def create_app(test_config=None):
             return questions[random.randrange(0, len(questions), 1)]
                                                                                 # to check if question is used
         def check_if_used(question):
-            used = False
+            u = False
             for q in previous:
                 if (q == question.id):
-                    used = True
-            return used
+                    u = True
+            return u
 
         question = get_random_question()
         while (check_if_used(question)):
             question = get_random_question()
-
-            # if all questions have been tried, return without question
-            # necessary if category has <5 questions
+            
             if (len(previous) == total):
                 return jsonify({
                     'success': True
                 })
 
-        # return the question
         return jsonify({
             'success': True,
             'question': question.format()
