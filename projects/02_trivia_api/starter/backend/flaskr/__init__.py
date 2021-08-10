@@ -242,5 +242,14 @@ def create_app(test_config=None):
             "error": 400,
             "message": "bad request"
         }), 400
+    
+    @app.errorhandler(405)
+    def method_not_allowed(error):
+        return jsonify({
+            "success": False,
+            "error": 405,
+            "message": "method not allowed"
+        }), 405
+            
 
     return app
