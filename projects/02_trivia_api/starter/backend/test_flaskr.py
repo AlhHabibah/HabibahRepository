@@ -101,6 +101,14 @@ class TriviaTestCase(unittest.TestCase):
 
         # check if question equals None after delete
         self.assertEqual(question, None)
+        
+    def test_404_delete_question(self):
+        res = self.client().delete('/questions/200')
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 404)
+        self.assertEqual(data['message'], 'Resource Not Found')
+        self.assertFalse(data['success'])
 
     def test_create_new_question(self):
         """Tests question creation success"""
