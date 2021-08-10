@@ -46,7 +46,7 @@ def create_app(test_config=None):
        
         return jsonify({                           
             'success': True,
-            'categories': categories_dict
+            'categories': categories_dict,
             'total_categories': len(categories_query)
         })
 #################################################
