@@ -151,7 +151,7 @@ def create_app(test_config=None):
                     'questions': current_questions,
                     'total_questions': len(Question.query.all())
                 })
-            except
+            except:
                 abort(422)
 ##########################################
 
