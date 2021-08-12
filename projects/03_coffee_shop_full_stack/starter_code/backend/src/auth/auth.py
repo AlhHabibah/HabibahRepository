@@ -3,11 +3,11 @@ from flask import request, _request_ctx_stack
 from functools import wraps
 from jose import jwt
 from urllib.request import urlopen
+import os
 
-
-AUTH0_DOMAIN = 'Habibah.auth0.com'
+AUTH0_DOMAIN = environ.get('AUTH0_DOMAIN')    # AUTH0_DOMAIN='Habibah.auth0.com'
 ALGORITHMS = ['RS256']
-API_AUDIENCE = 'dev'
+API_AUDIENCE = environ.get('API_AUDIENCE') # API_AUDIENCE= 'Coffee'
 
 ## AuthError Exception
 '''
@@ -23,42 +23,41 @@ class AuthError(Exception):
                                                                    
  def get_token_auth_header():                                      #TODO implement get_token_auth_header() method
     auth = request.headers.get('Authorization', None)
-    if not auth:
+    if not auth:                                   # if there is no header
         raise AuthError({
             'code': 'authorization_header_missing',
             'description': 'Authorization header is expected.'
         }, 401)
 
-    parts = auth.split()
-    if parts[0].lower() != 'bearer':
+    header_parts = auth.split()                #split the headers to different parts
+    if header_parts[0].lower() != 'bearer':
         raise AuthError({
             'code': 'invalid_header',
             'description': 'Authorization header must start with "Bearer".'
         }, 401)
 
-    elif len(parts) == 1:
+    elif len(header_parts) == 1:
         raise AuthError({
             'code': 'invalid_header',
             'description': 'Token not found.'
         }, 401)
 
-    elif len(parts) > 2:
+    elif len(header_parts) > 2:
         raise AuthError({
             'code': 'invalid_header',
             'description': 'Authorization header must be bearer token.'
         }, 401)
 
-    token = parts[1]
+    token = header_parts[1]
     return token
 #############################################
 #implement check_permissions(permission, payload) method
     
 def check_permissions(permission, payload):
-    # Check if permissions array in the JWT
+                                                     # Check if permissions array in the JWT
     if 'permissions' not in payload:
         abort(400)
-
-    # Check if the user have permissions to accsses this rescuers
+                                                     # Check if the user have permissions to accsses this rescuers
     if permission not in payload['permissions']:
         raise AuthError({
             'code': 'unauthorized',
@@ -94,7 +93,7 @@ def verify_decode_jwt(token):
                 token,
                 rsa_key,
                 algorithms=ALGORITHMS,
-                audience='coffe',
+                audience= API_AUDIENCE,
                 issuer='https://' + AUTH0_DOMAIN + '/'
             )
             return payload
